@@ -1,6 +1,7 @@
 #include<iostream>
 #include<SFML/Graphics.hpp>
 #include<cstdlib> // for clock , rand , srand 
+#include<sstream> // for font based operations
 using namespace sf;
 
 // input , update and draw part are 3 part of game 
@@ -66,9 +67,65 @@ int main(){
 	float cloud2Speed = 0.0f;
 	float cloud3Speed = 0.0f;
 	
-	Clock clock; // clock object;
+	Clock clock; // Variables to control time itself;
 	
+	// adding timebar 
+	RectangleShape timeBar;
+	float timeBarStartWidth = 400; // initial width of timebar 
+	float timeBarHeight = 80;
 	
+	timeBar.setSize(Vector2f(timeBarStartWidth,timeBarHeight)); // holds 2 floating (x,y) component 
+	// x -> horizontal . y -> vertical 
+	timeBar.setFillColor(Color::Blue);
+	timeBar.setPosition((1920/2) - timeBarStartWidth /2 , 980); // x,y
+	
+	Time gameTimeTotal;
+	float timeRemaining = 6.0f; // initial time 
+	float timeBarWidthPerSecond = timeBarStartWidth / timeRemaining; // time bar progression 
+	
+	bool paused = true; // tracks wether the game is paused or running 
+	
+	int score = 0; // declare score 
+	// draw some text 
+	Text messageText; // display message 
+	Text scoreText; // display in game score 
+	
+	// choose a font 
+	Font font;
+	font.loadFromFile("font/KOMIKAP_.ttf");
+	
+	// set the selected font to our text 
+	messageText.setFont(font);
+	scoreText.setFont(font);
+	
+	// Assign words to the message for display 
+	messageText.setString("Press Enter to Start :)");
+	scoreText.setString("Score - 0");
+	
+	// set the size of message 
+	messageText.setCharacterSize(75);
+	scoreText.setCharacterSize(100);
+	
+	// choose a color 
+	messageText.setFillColor(Color::Black);
+	scoreText.setFillColor(Color::Red);
+	
+	// Create a box to add position to message 
+	
+	FloatRect textRect = messageText.getLocalBounds(); // returns dimension (left,top,width,height);
+	
+	// contains x,y cordinate of messageText
+	// x = (left + width) / 2
+	// y = (right + top) / 2
+	messageText.setOrigin(textRect.left + textRect.width/2.0f,textRect.top + textRect.height/2.0f);
+	
+	// set position to middle 	
+	messageText.setPosition(1920/2.0f , 1080/2.0f);	
+	
+	//set position to score text 
+	scoreText.setPosition(20,20);
+	
+	// main game loop 
 	while(window.isOpen()){
 		//UPDATE SECTION 	
 		/*
@@ -80,13 +137,44 @@ int main(){
 				window.close();
 			}
 		}
-	
+		
+		// press escape to exit	
 		if(Keyboard::isKeyPressed(Keyboard::Escape)){
 			window.close();
 		}
 		
+		// start the game 
+		if(Keyboard::isKeyPressed(Keyboard::Enter)){
+			paused = false;
+			score = 0; // set initial score 
+			timeRemaining = 6; // set initial time 
+		}
+		
+	if(!paused){
+		// if pause == false , then game runs ...
+		
 		// ADDING MOVEMENT TO THE BEE 	
 		Time dt = clock.restart(); // time object 
+		
+		timeRemaining -= dt.asSeconds(); // decrease time for every second 
+		
+		// set new timebar display 
+		timeBar.setSize(Vector2f(timeRemaining * timeBarWidthPerSecond , timeBarHeight));
+		
+		// if time runs out 
+		if(timeRemaining <= 0.0f){
+			paused = true; // pause the game 
+			messageText.setString("Out of Time"); // display message out of time 
+			
+			// set size and position of new message 
+			FloatRect textRect = messageText.getLocalBounds();
+			messageText.setOrigin(textRect.left + textRect.width/2.0f,textRect.top + textRect.height/2.0f
+			);
+			messageText.setPosition(1920/2.0f,1080/2.0f);
+				
+		}
+		
+		// Bee Movement 
 		if(!beeActive){
 			srand((int)time(0)*10); //  set random speed range 
 			beeSpeed = (rand()%200)+200; // speed is b/w 200 and 400 
@@ -125,8 +213,7 @@ int main(){
 		cloud1Active = true; // Sets cloud1Active to true, indicating that the cloud is now active and moving.
 		}else{
 		
-		spriteCloud1.setPosition(
-			spriteCloud1.getPosition().x + (cloud1Speed*dt.asSeconds()),spriteCloud1.getPosition().y
+		spriteCloud1.setPosition(spriteCloud1.getPosition().x + (cloud1Speed*dt.asSeconds()),spriteCloud1.getPosition().y
 		); // we add cloud1speed*dt.asSecond here as cloud is moving from left to right
 		
 		// if cloud1 has reached end of screen 
@@ -172,6 +259,13 @@ int main(){
 		}
 	
 	}
+	
+	// Update score text at the end of the game 
+	std::stringstream ss;
+	ss<< "Score=" <<score;
+	scoreText.setString(ss.str());
+	
+	}
 		
 		// DRAW SECTION 
 		// clear everything from last frame
@@ -184,6 +278,13 @@ int main(){
 		window.draw(spriteCloud1); // clouds 
 		window.draw(spriteCloud2);
 		window.draw(spriteCloud3);
+		
+		window.draw(scoreText);
+		window.draw(timeBar);
+		// draw message text if game is paused 
+		if(paused){
+			window.draw(messageText);
+		}
 		
 		// show everything we just draw
 		window.display();
