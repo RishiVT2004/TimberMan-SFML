@@ -5,6 +5,24 @@
 using namespace sf;
 
 // input , update and draw part are 3 part of game 
+void updateBranches(int seed);
+const int NUM_BRANCHES = 6;
+Sprite branches[NUM_BRANCHES]; // This declares an array named branches.
+//The data type of the elements in the array is Sprite
+
+enum class side{LEFT,RIGHT,NONE}; // possible positions of branch 
+/*
+This declares an enum class named side. An enum class is a strongly-typed enumeration, which means that the enumerators (the values within the curly braces) are scoped to the side enum and are not implicitly convertible to integers.
+
+The enumerators defined within side are LEFT, RIGHT, and NONE. These likely represent the possible sides of the tree where a branch can appear (left, right, or not present on that particular "level" of the tree).
+*/
+
+side branchPositions[NUM_BRANCHES]; // stores positions of branches 
+
+/*
+This declares an array named branchPosition.
+The data type of the elements in the array is the side enum class that you just defined.
+*/
 
 int main(){
 
@@ -124,6 +142,59 @@ int main(){
 	
 	//set position to score text 
 	scoreText.setPosition(20,20);
+	
+	Texture textureBranch;
+	textureBranch.loadFromFile("graphics/branch.png"); // load branch texture 
+	
+	// assign texture and position to each branch 
+	for(int i = 0;i<NUM_BRANCHES;i++){
+		branches[i].setTexture(textureBranch);
+		branches[i].setPosition(-2000,2000);
+		branches[i].setOrigin(220,20);
+	}
+	
+	// Prepare Player Sprite 
+	Texture texturePlayer;
+	texturePlayer.loadFromFile("graphics/player.png");
+	Sprite spritePlayer;
+	spritePlayer.setTexture(texturePlayer);
+	spritePlayer.setPosition(580,720);
+	
+	/*
+	// Player starts on left 
+	side playerSide = side::LEFT;
+	*/
+	
+	// Prepare Gravestone 
+	
+	Texture textureRIP;
+	textureRIP.loadFromFile("graphics/rip.png");
+	Sprite spriteRIP;
+	spriteRIP.setTexture(textureRIP);
+	spriteRIP.setPosition(700,830);
+	
+	// Prepare the axe
+	Texture textureAxe;
+	textureAxe.loadFromFile("graphics/axe.png");
+	Sprite spriteAxe;
+	spriteAxe.setTexture(textureAxe);
+	spriteAxe.setPosition(700, 830);
+	
+	// Line the axe up with the tree
+	const float AXE_POSITION_LEFT = 700;
+	const float AXE_POSITION_RIGHT = 1075;
+	
+	// Prepare the flying log
+	Texture textureLog;
+	textureLog.loadFromFile("graphics/log.png");
+	Sprite spriteLog;
+	spriteLog.setTexture(textureLog);
+	spriteLog.setPosition(810, 720);
+	
+	// Some other useful log related variables
+	bool logActive = false;
+	float logSpeedX = 1000;
+	float logSpeedY = -1500;
 	
 	// main game loop 
 	while(window.isOpen()){
@@ -265,7 +336,23 @@ int main(){
 	ss<< "Score=" <<score;
 	scoreText.setString(ss.str());
 	
+	for(int i = 0;i<NUM_BRANCHES;i++){
+		float height = i * 150;
+		if(branchPositions[i] == side::LEFT){ // if branch enum type is left 
+			branches[i].setPosition(610,height); // set position 
+			branches[i].setRotation(180); // rotate branch by 180
+			
+		}else if(branchPositions[i] == side::RIGHT){  // if branch enum type is left 
+			branches[i].setPosition(1330,height); // set position 
+			branches[i].setRotation(0); //dont rotate branch 
+			
+		}else{
+			branches[i].setPosition(3000,height); // hide branch is NONE , set it outside screen 
+		}
 	}
+	
+	}
+	
 		
 		// DRAW SECTION 
 		// clear everything from last frame
@@ -273,11 +360,18 @@ int main(){
 		
 		// load sprite 
 		window.draw(spriteBackground); // background
-		window.draw(spriteTree); // tree 
-		window.draw(spriteBee); // bee			
+		
 		window.draw(spriteCloud1); // clouds 
 		window.draw(spriteCloud2);
 		window.draw(spriteCloud3);
+		
+		// drawing all branches 
+		for(int i = 0;i<NUM_BRANCHES;i++){
+			window.draw(branches[i]);
+		}
+		
+		window.draw(spriteTree); // tree 
+		window.draw(spriteBee); // bee			
 		
 		window.draw(scoreText);
 		window.draw(timeBar);
@@ -285,8 +379,36 @@ int main(){
 		if(paused){
 			window.draw(messageText);
 		}
+		window.draw(spritePlayer);
+		window.draw(spriteRIP);
+		window.draw(spriteAxe);
 		
 		// show everything we just draw
 		window.display();
 	}
+}
+
+void updateBranches(int seed){
+	
+	for(int j = NUM_BRANCHES ; j > 0 ; j--){
+		branchPositions[j] = branchPositions[j-1];
+	}
+	
+	// Spawn a new branch at position 0
+	// LEFT, RIGHT or NONE
+	srand((int)time(0)+seed);
+	int r = (rand() % 5);
+	
+	switch(r){
+		case 0: 
+			branchPositions[0] = side::LEFT;
+			break;
+		case 1:
+			branchPositions[0] = side::RIGHT;
+			break;
+		default:
+			branchPositions[0] = side::NONE;
+			break;
+	}
+
 }
