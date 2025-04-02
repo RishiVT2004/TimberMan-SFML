@@ -2,6 +2,8 @@
 #include<SFML/Graphics.hpp>
 #include<cstdlib> // for clock , rand , srand 
 #include<sstream> // for font based operations
+#include<SFML/Audio.hpp> // for audio 
+
 using namespace sf;
 
 // input , update and draw part are 3 part of game 
@@ -160,10 +162,10 @@ int main(){
 	spritePlayer.setTexture(texturePlayer);
 	spritePlayer.setPosition(580,720);
 	
-	/*
+	
 	// Player starts on left 
 	side playerSide = side::LEFT;
-	*/
+	
 	
 	// Prepare Gravestone 
 	
@@ -196,19 +198,44 @@ int main(){
 	float logSpeedX = 1000;
 	float logSpeedY = -1500;
 	
+	// Control the player input
+	bool acceptInput = false;
+	
+	// set input for audio 
+	SoundBuffer chopBuffer; // chopping 
+	chopBuffer.loadFromFile("audio/chop.wav");
+	Sound chop;
+	chop.setBuffer(chopBuffer);
+	
+	
+	SoundBuffer deathBuffer; // sound of death  
+	deathBuffer.loadFromFile("audio/death.wav");
+	Sound death;
+	death.setBuffer(deathBuffer);
+	
+	SoundBuffer ootBuffer; // out of time 
+	ootBuffer.loadFromFile("audio/out_of_time.wav");
+	Sound outOfTime;
+	outOfTime.setBuffer(ootBuffer); 	
+	
 	// main game loop 
 	while(window.isOpen()){
 		//UPDATE SECTION 	
 		/*
 		Window event is used to remove force shutdown of window screen
 		*/
-		Event event1; // create an event 
-		while(window.pollEvent(event1)){ // select the event 
-			if(event1.type == event1.Closed){ // if event1 is closed , window shuts/closes
-				window.close();
+		 // create an event 
+		// select and checks pending event in the event queue 
+		
+		Event event;
+		while(window.pollEvent(event)){
+			if(event.type == Event::KeyReleased && !paused){
+				acceptInput = true;
+				spriteAxe.setPosition(2000,spriteAxe.getPosition().y);
 			}
 		}
 		
+							
 		// press escape to exit	
 		if(Keyboard::isKeyPressed(Keyboard::Escape)){
 			window.close();
@@ -218,7 +245,64 @@ int main(){
 		if(Keyboard::isKeyPressed(Keyboard::Enter)){
 			paused = false;
 			score = 0; // set initial score 
-			timeRemaining = 6; // set initial time 
+			timeRemaining = 6; // set initial time to 6 sec 
+			
+			// set all branches side none making them disappera when game is started
+			for(int i = 0;i<NUM_BRANCHES;i++){
+				branchPositions[i]=side::NONE;
+			}
+			// initally set the position of gravestone outside the screen 
+			spriteRIP.setPosition(675,2000);
+			// initially player is aet at the lest site of screen
+			spritePlayer.setPosition(580,720);
+			// set accept player input to true 
+			acceptInput = true;
+		}
+		
+		// Wrap the player controls to
+		// Make sure we are accepting input	
+		if (acceptInput){
+		// when right key is pressed 
+			if(Keyboard::isKeyPressed(Keyboard::Right)){
+				// player moves to right side 
+				// as score increses by chopping , increse time based on given equation 
+				playerSide = side::RIGHT;
+				score++;
+				timeRemaining += (2/score) + 0.15;
+				
+				// set new position of axe and player based on right movement 
+				spriteAxe.setPosition(AXE_POSITION_RIGHT,spriteAxe.getPosition().y);
+				spritePlayer.setPosition(1200,720);
+				
+				//update Branch 
+				updateBranches(score);
+				
+				// set log position 
+				spriteLog.setPosition(810,720);
+				logSpeedX =- 5000;
+				logActive = true;
+				
+				acceptInput = false;
+				chop.play(); // implement chopping sound 
+			}
+			else if(Keyboard::isKeyPressed(Keyboard::Left)){
+			
+				playerSide = side::LEFT;
+				score++;
+				timeRemaining += (2/score) + 0.15;
+				
+				spriteAxe.setPosition(AXE_POSITION_LEFT,spriteAxe.getPosition().y);
+				spritePlayer.setPosition(580,720);
+				
+				updateBranches(score);
+				
+				spriteLog.setPosition(810,720);
+				logSpeedX = 5000;
+				logActive = true;
+				
+				acceptInput = false;
+				chop.play(); // implement chopping sound 
+			}
 		}
 		
 	if(!paused){
@@ -242,6 +326,7 @@ int main(){
 			messageText.setOrigin(textRect.left + textRect.width/2.0f,textRect.top + textRect.height/2.0f
 			);
 			messageText.setPosition(1920/2.0f,1080/2.0f);
+			outOfTime.play(); // out of time sound 
 				
 		}
 		
@@ -349,7 +434,33 @@ int main(){
 		}else{
 			branches[i].setPosition(3000,height); // hide branch is NONE , set it outside screen 
 		}
-	}
+	}// set logs flying 
+		if(logActive){
+			spriteLog.setPosition(spriteLog.getPosition().x +(logSpeedX * dt.asSeconds()) , 
+					      spriteLog.getPosition().y + (logSpeedY * dt.asSeconds()));
+			
+			if(spriteLog.getPosition().x < -100 || spriteLog.getPosition().x > 2000){
+				logActive = false;
+				spriteLog.setPosition(810,720);
+			}
+		}
+		
+	// criteria for ending the game 
+		if(branchPositions[5] == playerSide){
+			paused = true; // pause the game 
+			acceptInput = false; // no more input accepted 
+			spriteRIP.setPosition(525,760); // implement gravestone
+			spritePlayer.setPosition(2000,660); // remove player from screen 
+			messageText.setString("SQUISHED!!!"); // ending message
+			
+			 // get local dimension of message  
+			FloatRect textRect = messageText.getLocalBounds();
+			messageText.setOrigin(textRect.left + textRect.width/2.0f , textRect.top + textRect.height/2.0);
+			messageText.setPosition(1920/2.0f,1080/2.0f);
+			death.play(); // death sound 
+			
+		}
+		
 	
 	}
 	
@@ -382,6 +493,7 @@ int main(){
 		window.draw(spritePlayer);
 		window.draw(spriteRIP);
 		window.draw(spriteAxe);
+		window.draw(spriteLog);
 		
 		// show everything we just draw
 		window.display();
