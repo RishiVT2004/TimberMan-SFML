@@ -33,17 +33,17 @@ int main(){
 	VideoMode vm(1366,768);
 	RenderWindow window(vm,"Timber!!!");
 	
-	// create texture object 
-	Texture textureBackground;
-	
-	//Load Graphic to texture 
-	textureBackground.loadFromFile("graphics/background.png");
-	
 	// Using view class helps to improve the display of the window 
 	// view(x,y,height,width) -> syntax
 
 	View view(FloatRect(0,0,1920,1080));
 	window.setView(view);
+	
+	// create texture object 
+	Texture textureBackground;
+	//Load Graphic to texture 
+	textureBackground.loadFromFile("graphics/background.png");
+	
 		
 	Sprite spriteBackground; // create sprite 
 	spriteBackground.setTexture(textureBackground); // set sprite to texture background
